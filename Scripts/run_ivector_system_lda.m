@@ -14,7 +14,7 @@ proj_dim = 200;
 gender = 'F';
 file_end = join(['_' num2str(num_gaussians) '_' num2str(ivector_dim) '_' num2str(proj_dim) ...
                 '_' gender '.mat'], '');
-ubm_file = join(['./Models/ubm' file_end], '');
+ubm_file = join(['../Models/ubm' file_end], '');
 if exist(ubm_file, 'file')
     disp('ivector system already trained.')
     load(ubm_file)
@@ -24,7 +24,7 @@ else
 end
 
 %%% ------ Project i-vectors to new space using LDA/WCCN -------------- %%%
-projm_file = join(['./Models/projm' file_end], '');
+projm_file = join(['../Models/projm' file_end], '');
 if exist(projm_file, 'file') 
     load(projm_file)
 else
@@ -35,7 +35,7 @@ end
 %%% -------------- Enrol speakers ------------------------------------- %%%
 enrolFolder = 'C:/Users/mFry2/Desktop/SpeeCon/Data/SpiCE/MFCC/*.mfcc';
 num_enrolment_utterances = 100;
-speaker_iv_files = join(['./Models/lda_speaker_ivectors' file_end], '');
+speaker_iv_files = join(['../Models/lda_speaker_ivectors' file_end], '');
 if exist(speaker_iv_files, 'file')
     load(speaker_iv_files);
 else
@@ -44,7 +44,7 @@ else
 end
 
 %%% ----------------- Verify Speakers with FRR/FAR -------------------- %%%
-frr_far_file = join(['./Models/lda_frr_far' file_end], '');
+frr_far_file = join(['../Models/lda_frr_far' file_end], '');
 if exist(frr_far_file, 'file')
     load(frr_far_file)
 else

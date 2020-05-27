@@ -14,7 +14,7 @@ proj_dim = 200;
 gender = 'F';
 file_end = join(['_' num2str(num_gaussians) '_' num2str(ivector_dim) '_' num2str(proj_dim) ...
                 '_' gender '.mat'], '');        
-ubm_file = join(['./Models/ubm' file_end], '');
+ubm_file = join(['../Models/ubm' file_end], '');
 if exist(ubm_file, 'file')
     disp('ivector system already trained.')
     load(ubm_file)
@@ -24,7 +24,7 @@ else
 end
 
 %%% ------------ Calculate PLDA parameters over test set -------------- %%%
-pdla_file = join(['./Models/pdla' file_end], '');
+pdla_file = join(['../Models/pdla' file_end], '');
 if exist(pdla_file, 'file') 
     load(pdla_file)
 else
@@ -35,7 +35,7 @@ end
 %%% ------- Get enrolled speaker i-vector and set of verify ivectors -- %%%
 enrolFolder = 'C:/Users/mFry2/Desktop/SpeeCon/Data/SpiCE/MFCC/*.mfcc';
 num_enrolment_utterances = 75;
-speaker_iv_plda_file = join(['./Models/speaker_iv_PLDA' file_end], '');
+speaker_iv_plda_file = join(['../Models/speaker_iv_PLDA' file_end], '');
 if exist(speaker_iv_plda_file, 'file')
     load(speaker_iv_plda_file);
 else
@@ -49,4 +49,12 @@ prob_scores = zeros(size(scores));
 [mm, pred_speaker_id] = max(scores);
 for col = 1:size(scores,2)
     prob_scores(:,col) = exp(scores(:,col))/(sum(exp(scores(:,col))));
+end
+
+figure;
+for speakerIdx = 1:size(prob_scores,1)
+    subplot(4,1,speakerIdx);
+    plot(prob_scores(speakerIdx, :));
+    ylim([0,1.2]);
+    xlim([0,size(prob_scores,2)])
 end
