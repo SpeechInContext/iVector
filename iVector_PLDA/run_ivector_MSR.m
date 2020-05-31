@@ -22,7 +22,7 @@ parfor fileIdx = 1:size(mfcc_list,1)
 end
 
 %%%------------------ Define hyper-parameters ------------------------- %%%
-num_gaussians = 64;
+num_gaussians = 128;
 tv_dim =  200;
 plda_dim = 200;
 gender = 'F';
@@ -121,6 +121,10 @@ outFolder = 'C:\Users\mFry2\Desktop\SpeeCon\Data\SpiCE\audio_files\Interview sni
 folder2change = 'WAV';
 normalizeMFCCs = true;
 enrol_verify_list = extract_mfccs(inFolder, outFolder, folder2change, normalizeMFCCs);
+
+% Filter to selected gender
+gender_idx = contains(enrol_verify_list, ['V' gender]);
+enrol_verify_list = enrol_verify_list(gender_idx,1);
 
 %---------- Next, collect all MFCCs of enrol/verify files ----------------%
 all_enrol_verify_feats = cell(size(enrol_verify_list,1),1);
