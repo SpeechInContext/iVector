@@ -1,0 +1,1 @@
+# i-vector extraction following MATLAB tutorial (without relying on Audio Toolbox)
