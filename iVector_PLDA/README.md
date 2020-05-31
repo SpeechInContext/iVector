@@ -1,1 +1,1 @@
-# i-vector extraction using MSR Identity Toolbox
+i-vector extraction using MSR Identity Toolbox
