@@ -1,4 +1,4 @@
-function mfcc_files = extract_mfccs(inFolder, outFolder, folder2change, normalizeMFCCs)
+function mfcc_files = extract_mfccs(inFolder, soundfile_ext, outFolder, normalizeMFCCs)
     if exist(outFolder, 'dir')
         disp(['Appears MFCCs already extracted to: ' outFolder]);
         files = dir([outFolder '\**\*.mfcc']);
@@ -12,7 +12,7 @@ function mfcc_files = extract_mfccs(inFolder, outFolder, folder2change, normaliz
     end
     
     % Get files
-    files = dir([inFolder '\**\*.wav']);
+    files = dir([inFolder '\**\*' soundfile_ext]);
     
     % Collect all MFCCs to get normalization parameters
     if normalizeMFCCs
@@ -36,7 +36,7 @@ function mfcc_files = extract_mfccs(inFolder, outFolder, folder2change, normaliz
     parfor fileIdx = 1:size(files,1)
         filename = files(fileIdx).name;
         folder = files(fileIdx).folder;
-        mfccFolder = strrep(folder, folder2change, 'MFCC');
+        mfccFolder = strrep(folder, inFolder, outFolder);
         if ~exist(mfccFolder, 'dir')
             mkdir(mfccFolder);
         end
@@ -59,7 +59,10 @@ end
 function mfcc_feats = get_mfccs_deltas(sig, fs)
     % Returns the mfccs, deltas and delta-deltas of a signal with preset
     % parameters
-    [mfcc_x_feats, ~, ~] = melfcc(sig, fs, 'wintime', 0.025, 'hoptime', 0.010, 'numcep', 20);
+    window_size = 0.025;
+    window_shift = 0.010;
+    number_coeff = 20;
+    [mfcc_x_feats, ~, ~] = melfcc(sig, fs, 'wintime', window_size, 'hoptime', window_shift, 'numcep', number_coeff);
     ds = deltas(mfcc_x_feats, 9);
     dds = deltas(ds, 9);
     mfcc_feats = [mfcc_x_feats; ds; dds];
