@@ -45,9 +45,10 @@ function mfcc_files = extract_mfccs(inFolder, outFolder, folder2change, normaliz
         x_feats = get_mfccs_deltas(x,fs);
         if normalizeMFCCs
             x_feats = (x_feats-normMean)./normSTD; %normalize
-            x_feats = x_feats - mean(x_feats,'all'); %for channel noise
+            %x_feats = x_feats - mean(x_feats,'all'); %for channel noise
         end   
         outFile = strcat(mfccFolder, '\', filename);
+        outFile = strrep(outFile, '.WAV', '.mfcc');
         outFile = strrep(outFile, '.wav', '.mfcc');
         fileId = fopen(outFile, 'w');
         fwrite(fileId, x_feats);

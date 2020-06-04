@@ -5,7 +5,7 @@ function [speaker_ivector_models, speaker_model_size, verify_ivectors, verify_la
     verify_ivectors = [];
     verify_labels = [];
     parfor speakerIdx = 1:size(unique_speakers,1)
-        speaker_idxs = string(enrol_verify_ivectors(:,2)) == unique_speakers(speakerIdx);
+        speaker_idxs = string(enrol_verify_ivectors(:,2)) == unique_speakers(speakerIdx); %#ok
         speaker_ivectors = enrol_verify_ivectors(speaker_idxs, 1);
         num_for_model = floor(proportion*size(speaker_ivectors,1));
         model_ivectors = cat(2,speaker_ivectors{1:num_for_model, 1});
