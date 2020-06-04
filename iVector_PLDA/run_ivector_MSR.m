@@ -1,9 +1,9 @@
 %%%------------------ Define hyper-parameters ------------------------- %%%
-num_gaussians = 32;
-tv_dim =  100;
-plda_dim = 50;
+num_gaussians = 1024;
+tv_dim =  400;
+plda_dim = 200;
 numFeatures = 60;
-gender = 'M';
+gender = 'F';
 num_para_workers = 5;
 file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
     num2str(plda_dim) '_' gender '.mat'], '');
@@ -11,9 +11,9 @@ file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
 %%%---------- Get/Process files for background UBM model -------------- %%%
 
 %------------ First, extract MFCCs if needed -----------------------------%
-inFolder = 'C:\Users\mFry2\Desktop\SpeeCon\Data\PTDB-TUG\SPEECH DATA\MALE\MIC';
+inFolder = 'C:\Users\mf\Documents\Corpora\TIMIT\TRAIN\WAV';
 soundfile_ext = '.wav';
-outFolder = 'C:\Users\mFry2\Desktop\SpeeCon\Data\PTDB-TUG\SPEECH DATA\MALE\MFCC';
+outFolder = 'C:\Users\mf\Documents\Corpora\TIMIT\TRAIN\MFCC';
 normalizeMFCCs = true;
 disp('Calculating MFCCs');
 tic
@@ -62,7 +62,10 @@ if exist(background_bw_file, 'file')
 else
     disp('Calculating Baum-Welch stats on background data')
     tic
-    [N, F] = cellfun(wrap_bw_stats, all_feats, 'UniformOutput', false);
+    temp_arr = distributed(all_feats);
+    [N, F] = cellfun(wrap_bw_stats, temp_arr, 'UniformOutput', false);
+    N = gather(N);
+    F = gather(F);
     all_bw_stats = cell(size(N));
     for cellIdx = 1:size(N,1)
        all_bw_stats(cellIdx,1) = {[N{cellIdx}; F{cellIdx}]};
@@ -94,14 +97,16 @@ if exist(background_iv_file, 'file')
 else
     disp('Extracting i-vectors for all background data')
     tic
-    background_ivectors = cellfun(wrap_ivector, all_bw_stats, 'UniformOutput', false);
+    temp_arr = distributed(all_bw_stats);
+    background_ivectors = cellfun(wrap_ivector, temp_arr, 'UniformOutput', false);
+    background_ivectors = gather(background_ivectors);
     save(background_iv_file, 'background_ivectors')
     fprintf('i-vectors extracted (%0.0f seconds).\n',toc)
 end
 
 %%%------------ Use labels to train PDLA projection ------------------- %%%
 for fileIdx = 1:size(mfcc_list)
-    background_ivectors(fileIdx, 2) = extractBetween(mfcc_list(fileIdx), 'mic_', '_');
+    background_ivectors(fileIdx, 2) = extractBetween(mfcc_list(fileIdx), 'MFCC\', '\S');
 end
 speakerIds = grp2idx(background_ivectors(:,2));
 speaker_ivectors = cat(2, background_ivectors{:,1});
@@ -124,8 +129,8 @@ end
 %%%------------- Extract MFCCs for enrol and verify data -------------- %%%
 
 %------------ First, extract MFCCs if needed -----------------------------%
-inFolder = 'C:\Users\mFry2\Desktop\SpeeCon\Data\SpiCE\audio_files\Interview snippets\WAV';
-outFolder = 'C:\Users\mFry2\Desktop\SpeeCon\Data\SpiCE\audio_files\Interview snippets\MFCC';
+inFolder = 'C:\Users\mf\Desktop\SpeeCon\SpiCE\WAV\english_interview_snippets';
+outFolder = 'C:\Users\mf\Desktop\SpeeCon\SpiCE\MFCC\english_interview_snippets';
 soundfile_ext = '.wav';
 normalizeMFCCs = true;
 enrol_verify_list = extract_mfccs(inFolder, soundfile_ext, outFolder, normalizeMFCCs);
@@ -152,7 +157,10 @@ if exist(enrol_verify_bw_file, 'file')
 else
     disp('Calculating Bam-Welch stats on enrol/verify data')
     tic
-    [N, F] = cellfun(wrap_bw_stats, all_enrol_verify_feats, 'UniformOutput', false);
+    temp_arr = distributed(all_enrol_verify_feats);
+    [N, F] = cellfun(wrap_bw_stats, temp_arr, 'UniformOutput', false);
+    N = gather(N);
+    F = gather(F);
     all_enrol_verify_bw_stats = cell(size(N));
     for cellIdx = 1:size(N,1)
        all_enrol_verify_bw_stats(cellIdx,1) = {[N{cellIdx}; F{cellIdx}]};
@@ -164,7 +172,7 @@ end
 %%%------------ Extract i-vectors for enrol and verify data ----------- %%%
 enrol_verify_ivectors = cellfun(wrap_ivector, all_enrol_verify_bw_stats, 'UniformOutput', false);
 for fileIdx = 1:size(enrol_verify_list)
-    enrol_verify_ivectors(fileIdx, 2) = extractBetween(enrol_verify_list(fileIdx), 'MFCC\', '_');
+    enrol_verify_ivectors(fileIdx, 2) = extractBetween(enrol_verify_list(fileIdx), 'snippets\', '_');
 end
 speakerIds = grp2idx(enrol_verify_ivectors(:,2));
 
