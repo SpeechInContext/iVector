@@ -1,3 +1,13 @@
+%%%------------------ Define hyper-parameters ------------------------- %%%
+num_gaussians = 32;
+tv_dim =  100;
+plda_dim = 50;
+numFeatures = 60;
+gender = 'M';
+num_para_workers = 5;
+file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
+    num2str(plda_dim) '_' gender '.mat'], '');
+
 %%%---------- Get/Process files for background UBM model -------------- %%%
 
 %%%------------------ Define hyper-parameters ------------------------- %%%
@@ -10,13 +20,27 @@ file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
     num2str(plda_dim) '_' gender '.mat'], '');
 
 %------------ First, extract MFCCs if needed -----------------------------%
+<<<<<<< HEAD
 inFolder = 'C:\Users\mf\Documents\Corpora\TIMIT\TRAIN\WAV';
 outFolder = 'C:\Users\mf\Documents\Corpora\TIMIT\TRAIN\MFCC';
 folder2change = 'WAV';
+=======
+inFolder = 'C:\Users\mFry2\Desktop\SpeeCon\Data\PTDB-TUG\SPEECH DATA\MALE\MIC';
+soundfile_ext = '.wav';
+outFolder = 'C:\Users\mFry2\Desktop\SpeeCon\Data\PTDB-TUG\SPEECH DATA\MALE\MFCC';
+>>>>>>> 5fd906550b7a6f82239e0744b4e8b25d3b72f525
 normalizeMFCCs = true;
 disp('Calculating MFCCs');
 tic
-mfcc_list = extract_mfccs(inFolder, outFolder, folder2change, normalizeMFCCs);
+mfcc_list = extract_mfccs(inFolder, soundfile_ext, outFolder, normalizeMFCCs);
+
+%----------- Filter to gender if needed ----------------------------------%
+if gender == 'F'
+    gender_idx = contains(mfcc_list, '\F');
+else
+    gender_idx = ~contains(mfcc_list, '\F');
+end
+mfcc_list = mfcc_list(gender_idx, :);
 fprintf('Feature extraction from background set complete (%0.0f seconds).\n',toc)
 
 % Filter to selected gender
@@ -30,7 +54,6 @@ mfcc_list = mfcc_list(gender_idx,1);
 
 %---------- Next, collect all MFCCs of background files ------------------%
 all_feats = cell(size(mfcc_list,1),1);
-numFeatures = 60;
 parfor fileIdx = 1:size(mfcc_list,1)
     fileId = fopen(mfcc_list{fileIdx});
     x_feats = fread(fileId);
@@ -76,12 +99,12 @@ else
 end
 
 %%%------------------ Train Total Variability Matrix ------------------ %%%
-num_iters = 20;
 tvm_file = join(['./Files/tvm' file_end], '');
 if exist(tvm_file, 'file')
     disp('Loading pre-trained Total Variability Matrix')
     load(tvm_file)
 else
+    num_iters = 20;
     disp('Calculating Total Variability Matrix (using all background data)')
     tic
     tvm = train_tv_space(all_bw_stats, ubm, tv_dim, num_iters, num_para_workers);
@@ -107,7 +130,11 @@ end
 
 %%%------------ Use labels to train PDLA projection ------------------- %%%
 for fileIdx = 1:size(mfcc_list)
+<<<<<<< HEAD
     background_ivectors(fileIdx, 2) = extractBetween(mfcc_list(fileIdx), 'MFCC\', '\S');
+=======
+    background_ivectors(fileIdx, 2) = extractBetween(mfcc_list(fileIdx), 'mic_', '_');
+>>>>>>> 5fd906550b7a6f82239e0744b4e8b25d3b72f525
 end
 speakerIds = grp2idx(background_ivectors(:,2));
 speaker_ivectors = cat(2, background_ivectors{:,1});
@@ -130,11 +157,17 @@ end
 %%%------------- Extract MFCCs for enrol and verify data -------------- %%%
 
 %------------ First, extract MFCCs if needed -----------------------------%
+<<<<<<< HEAD
 inFolder = 'C:\Users\mf\Desktop\SpeeCon\SpiCE\WAV\english_interview_snippets';
 outFolder = 'C:\Users\mf\Desktop\SpeeCon\SpiCE\MFCC\english_interview_snippets';
 folder2change = 'WAV';
+=======
+inFolder = 'C:\Users\mFry2\Desktop\SpeeCon\Data\SpiCE\audio_files\Interview snippets\WAV';
+outFolder = 'C:\Users\mFry2\Desktop\SpeeCon\Data\SpiCE\audio_files\Interview snippets\MFCC';
+soundfile_ext = '.wav';
+>>>>>>> 5fd906550b7a6f82239e0744b4e8b25d3b72f525
 normalizeMFCCs = true;
-enrol_verify_list = extract_mfccs(inFolder, outFolder, folder2change, normalizeMFCCs);
+enrol_verify_list = extract_mfccs(inFolder, soundfile_ext, outFolder, normalizeMFCCs);
 
 % Filter to selected gender
 gender_idx = contains(enrol_verify_list, ['V' gender]);
@@ -186,13 +219,17 @@ else
 end
 
 for fileIdx = 1:size(enrol_verify_list)
+<<<<<<< HEAD
     enrol_verify_ivectors(fileIdx, 2) = extractBetween(enrol_verify_list(fileIdx), 'snippets\', '\');
+=======
+    enrol_verify_ivectors(fileIdx, 2) = extractBetween(enrol_verify_list(fileIdx), 'MFCC\', '_');
+>>>>>>> 5fd906550b7a6f82239e0744b4e8b25d3b72f525
 end
 speakerIds = grp2idx(enrol_verify_ivectors(:,2));
 
 %%%------------ Splice enrol set and verify set ----------------------- %%%
 % Set proportion of enrol utterances
-proportion = 0.2;
+proportion = 0.3;
 [model_iv, speaker_model_size, test_iv, verify_labels] = separate_enrol_verify(enrol_verify_ivectors,proportion);
 
 %%%------------ Perform PLDA on verification set -----------------------%%%
