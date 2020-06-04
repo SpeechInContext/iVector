@@ -1,4 +1,5 @@
 function mfcc_files = extract_mfccs(inFolder, soundfile_ext, outFolder, normalizeMFCCs)
+%% Extract MFCCs from input sound files using get_mfcc_delta (function below)
     if exist(outFolder, 'dir')
         disp(['Appears MFCCs already extracted to: ' outFolder]);
         files = dir([outFolder '\**\*.mfcc']);
