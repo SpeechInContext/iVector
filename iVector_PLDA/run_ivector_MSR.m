@@ -1,10 +1,10 @@
 %%%------------------ Define hyper-parameters ------------------------- %%%
-num_gaussians = 1024;
-tv_dim =  400;
+num_gaussians = 2048;
+tv_dim =  600;
 plda_dim = 200;
 numFeatures = 60;
 gender = 'F';
-num_para_workers = 5;
+num_para_workers = 19;
 file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
     num2str(plda_dim) '_' gender '.mat'], '');
 
@@ -104,7 +104,7 @@ else
     fprintf('i-vectors extracted (%0.0f seconds).\n',toc)
 end
 
-%%%------------ Use labels to train PDLA projection ------------------- %%%
+%%%------------ Use labels to train PLDA projection ------------------- %%%
 for fileIdx = 1:size(mfcc_list)
     background_ivectors(fileIdx, 2) = extractBetween(mfcc_list(fileIdx), 'MFCC\', '\S');
 end
@@ -117,9 +117,22 @@ if exist(plda_file, 'file')
 else
     disp('Calculating PLDA mapping')
     tic
-    plda = gplda_em(double(speaker_ivectors), speakerIds, plda_dim, 5);
+    plda = gplda_em(double(speaker_ivectors), speakerIds, plda_dim, 10);
     save(plda_file, 'plda')
     fprintf('PLDA mapping calculated (%0.0f seconds).\n',toc)
+end
+
+%%%------------ Use labels to train LDA projection ------------------- %%%
+lda_file = join(['./Files/lda' file_end], '');
+if exist(lda_file, 'file')
+    disp('Loading pre-trained LDA mapping')
+    load(lda_file)
+else
+    disp('Calculating LDA mapping')
+    tic
+    lda_out = lda(double(speaker_ivectors), speakerIds');
+    save(lda_file, 'lda_out')
+    fprintf('LDA mapping calculated (%0.0f seconds).\n',toc)
 end
 
 %%%---------------------------------------------------------------------%%%
@@ -170,11 +183,25 @@ else
 end
 
 %%%------------ Extract i-vectors for enrol and verify data ----------- %%%
-enrol_verify_ivectors = cellfun(wrap_ivector, all_enrol_verify_bw_stats, 'UniformOutput', false);
-for fileIdx = 1:size(enrol_verify_list)
-    enrol_verify_ivectors(fileIdx, 2) = extractBetween(enrol_verify_list(fileIdx), 'snippets\', '_');
+enrol_verify_iv_file = join(['./Files/enrol_verify_ivectors' file_end], '');
+if exist(enrol_verify_iv_file, 'file')
+    disp('Loading pre-extracted i-vectors of enrol/verify data')
+    load(enrol_verify_iv_file)
+else
+    disp('Extracting i-vectors for all enrol/verify data')
+    tic
+    temp_arr = distributed(all_enrol_verify_bw_stats);
+    enrol_verify_ivectors = cellfun(wrap_ivector,temp_arr , 'UniformOutput', false);
+    enrol_verify_ivectors = gather(enrol_verify_ivectors);
+    for fileIdx = 1:size(enrol_verify_list)
+        enrol_verify_ivectors(fileIdx, 2) = extractBetween(enrol_verify_list(fileIdx), 'snippets\', '_');
+    end
+    enrol_verify_ivectors = [enrol_verify_ivectors enrol_verify_list];
+    save(enrol_verify_iv_file, 'enrol_verify_ivectors')
+    fprintf('i-vectors extracted (%0.0f seconds).\n',toc)
 end
-speakerIds = grp2idx(enrol_verify_ivectors(:,2));
+
+
 
 %%%------------ Splice enrol set and verify set ----------------------- %%%
 % Set proportion of enrol utterances

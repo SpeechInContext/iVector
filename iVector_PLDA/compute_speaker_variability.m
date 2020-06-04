@@ -4,8 +4,8 @@
 
 %%%------------------ Define hyper-parameters ------------------------- %%%
 % These parameters must match a model that has already been trained
-num_gaussians = 128;
-tv_dim =  200;
+num_gaussians = 2048;
+tv_dim =  600;
 plda_dim = 200;
 numFeatures = 60;
 gender = 'F';
@@ -27,9 +27,9 @@ unique_speakerIds = unique(speakerIds);
 
 %%%---------------- Generate analyses --------------------------------- %%%
 speaker_analyses = cell(size(unique_speakerIds,1), 14);
-grouped_utterances_cols = ["SpeakerId" "SpeakerIdNum" "Files" "iVectors" "SpeakerModel" ...
+speaker_analyses_cols = ["SpeakerId" "SpeakerIdNum" "Files" "iVectors" "SpeakerModel" ...
     "iVectEuDist2Model" "AvgEuDist" "EuStd" "iVectCSDist2Model" "AvgCSDist" "CSStd" ...
-    "iVectProb2Model" "AvgProb" "ProbStd"];
+    "iVectProb2Model" "AvgProb" "ProbStd" "PLDAAcc" "PLDAFRR" "PLDAFAR"];
 for spIdx = 1:size(unique_speakerIds,1)
     utteranceIdx = speakerIds == spIdx;
     speaker_analyses(spIdx,1) = unique_speakers(spIdx);
@@ -41,7 +41,7 @@ for spIdx = 1:size(unique_speakerIds,1)
     speaker_analyses(spIdx,5) = {speaker_model};  
     
     %%%-----------Calculate Euclidean Distance per iVector
-    dist_per_ivector = vecnorm(speaker_analyses{spIdx,4}-repmat(speaker_model, 1,size(speaker_analyses{spIdx,4},2)));
+    dist_per_ivector = vecnorm2(speaker_analyses{spIdx,4}-repmat(speaker_model, 1,size(speaker_analyses{spIdx,4},2)));
     speaker_analyses(spIdx,6) = {dist_per_ivector};
     % get average Euclidean distance
     speaker_analyses(spIdx,7) = {mean(dist_per_ivector)};
@@ -70,10 +70,21 @@ for spIdx = 1:size(unique_speakerIds,1)
     %%%-------------Calculate Probability using PLDA per iVector
     prob_per_ivector = prob_scores(spIdx, st_loc:en_loc);
     speaker_analyses(spIdx,12) = {prob_per_ivector};
-    speaker_analyses(spIdx,13) = {mean(prob_per_ivector)}; 
-    speaker_analyses(spIdx,14) = {std(prob_per_ivector)}; 
+    speaker_analyses(spIdx,13) = {nanmean(prob_per_ivector)}; 
+    speaker_analyses(spIdx,14) = {nanstd(prob_per_ivector)};
+    speaker_accuracy_per_utt = speakerIds(speakerIds==spIdx)' == pred_speaker_id(speakerIds==spIdx);
+    false_accept_per_utt = pred_speaker_id(speakerIds~=spIdx) == spIdx;
+    speak_accuracy = sum(speaker_accuracy_per_utt)/size(speaker_accuracy_per_utt,2);
+    false_accept = sum(false_accept_per_utt)/size(false_accept_per_utt,2);
+    speaker_analyses(spIdx,15) = {speak_accuracy};
+    speaker_analyses(spIdx,16) = {1-speak_accuracy};
+    speaker_analyses(spIdx,17) = {false_accept};
     st_loc = en_loc + 1;
 end
+speaker_analyses = [cellstr(speaker_analyses_cols); speaker_analyses];
+%sort command: 
+% speaker_analyses(2:end,:) = sortrows(speaker_analyses(2:end,:), 15, 'descend');
+cp = classperf(speakerIds', pred_speaker_id);
 
 %%%---------------------- HelperFunctions ------------------------------%%%
 function csd_m= cosine_dist_mat(speaker_model, ivectors)
@@ -82,6 +93,14 @@ function csd_m= cosine_dist_mat(speaker_model, ivectors)
         csd_m(idx) = cosine_dist(ivectors(:,idx), speaker_model);
     end
 end
+
 function csd = cosine_dist(v1, v2)
     csd = 1 - dot(v1,v2)/norm(v1)/norm(v2);
+end
+
+function vn = vecnorm2(m)
+    vn = zeros(1,size(m,2));
+    for idx = 1:size(m,2)
+        vn(idx) = norm(m(:,idx));
+    end
 end
