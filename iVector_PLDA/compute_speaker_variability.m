@@ -4,9 +4,9 @@
 
 %%%------------------ Define hyper-parameters ------------------------- %%%
 % These parameters must match a model that has already been trained
-num_gaussians = 2048;
-tv_dim =  600;
-plda_dim = 200;
+num_gaussians = 1024;
+tv_dim =  400;
+plda_dim = 400;
 numFeatures = 60;
 gender = 'F';
 num_para_workers = 5;
@@ -35,7 +35,7 @@ for spIdx = 1:size(unique_speakerIds,1)
     speaker_analyses(spIdx,1) = unique_speakers(spIdx);
     speaker_analyses(spIdx,2) = {spIdx};
     speaker_analyses(spIdx,3) = {string(cat(2, enrol_verify_ivectors(utteranceIdx, 3)))'};
-    speaker_analyses(spIdx,4) = {cat(2, enrol_verify_ivectors{utteranceIdx, 1})};
+    speaker_analyses(spIdx,4) = {lda_out'*cat(2, enrol_verify_ivectors{utteranceIdx, 1})};
     %%%----------Generate Speaker Model (average ivector)
     speaker_model = mean(speaker_analyses{spIdx,4},2);
     speaker_analyses(spIdx,5) = {speaker_model};  
@@ -83,7 +83,7 @@ for spIdx = 1:size(unique_speakerIds,1)
 end
 speaker_analyses = [cellstr(speaker_analyses_cols); speaker_analyses];
 %sort command: 
-% speaker_analyses(2:end,:) = sortrows(speaker_analyses(2:end,:), 15, 'descend');
+speaker_analyses(2:end,:) = sortrows(speaker_analyses(2:end,:), 13, 'descend');
 cp = classperf(speakerIds', pred_speaker_id);
 
 %%%---------------------- HelperFunctions ------------------------------%%%

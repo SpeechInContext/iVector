@@ -1,7 +1,7 @@
 %%%------------------ Define hyper-parameters ------------------------- %%%
-num_gaussians = 2048;
-tv_dim =  600;
-plda_dim = 200;
+num_gaussians = 1024;
+tv_dim =  400;
+plda_dim = 400;
 numFeatures = 60;
 gender = 'F';
 num_para_workers = 19;
@@ -11,8 +11,10 @@ file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
 %%%---------- Get/Process files for background UBM model -------------- %%%
 
 %------------ First, extract MFCCs if needed -----------------------------%
+%inFolder = 'C:\Users\mf\Documents\Corpora\LibriSpeech\flac';
 inFolder = 'C:\Users\mf\Documents\Corpora\TIMIT\TRAIN\WAV';
-soundfile_ext = '.wav';
+soundfile_ext = '.WAV';
+%outFolder = 'C:\Users\mf\Documents\Corpora\LibriSpeech\MFCC';
 outFolder = 'C:\Users\mf\Documents\Corpora\TIMIT\TRAIN\MFCC';
 normalizeMFCCs = true;
 disp('Calculating MFCCs');
@@ -104,25 +106,12 @@ else
     fprintf('i-vectors extracted (%0.0f seconds).\n',toc)
 end
 
-%%%------------ Use labels to train PLDA projection ------------------- %%%
+%%%------------ Use labels to train LDA projection ------------------- %%%
 for fileIdx = 1:size(mfcc_list)
     background_ivectors(fileIdx, 2) = extractBetween(mfcc_list(fileIdx), 'MFCC\', '\S');
 end
 speakerIds = grp2idx(background_ivectors(:,2));
 speaker_ivectors = cat(2, background_ivectors{:,1});
-plda_file = join(['./Files/plda' file_end], '');
-if exist(plda_file, 'file')
-    disp('Loading pre-trained PLDA mapping')
-    load(plda_file)
-else
-    disp('Calculating PLDA mapping')
-    tic
-    plda = gplda_em(double(speaker_ivectors), speakerIds, plda_dim, 10);
-    save(plda_file, 'plda')
-    fprintf('PLDA mapping calculated (%0.0f seconds).\n',toc)
-end
-
-%%%------------ Use labels to train LDA projection ------------------- %%%
 lda_file = join(['./Files/lda' file_end], '');
 if exist(lda_file, 'file')
     disp('Loading pre-trained LDA mapping')
@@ -134,6 +123,22 @@ else
     save(lda_file, 'lda_out')
     fprintf('LDA mapping calculated (%0.0f seconds).\n',toc)
 end
+
+%%%------------ Use labels to train PLDA projection ------------------- %%%
+
+plda_file = join(['./Files/plda' file_end], '');
+if exist(plda_file, 'file')
+    disp('Loading pre-trained PLDA mapping')
+    load(plda_file)
+else
+    disp('Calculating PLDA mapping')
+    tic
+    speaker_ivectors_lda = lda_out'*speaker_ivectors;
+    plda = gplda_em(double(speaker_ivectors_lda), speakerIds, plda_dim, 10);
+    save(plda_file, 'plda')
+    fprintf('PLDA mapping calculated (%0.0f seconds).\n',toc)
+end
+
 
 %%%---------------------------------------------------------------------%%%
 %%% -------------- At this point the model is trained ----------------- %%%
@@ -209,7 +214,7 @@ proportion = 0.3;
 [model_iv, speaker_model_size, test_iv, verify_labels] = separate_enrol_verify(enrol_verify_ivectors,proportion);
 
 %%%------------ Perform PLDA on verification set -----------------------%%%
-scores = score_gplda_trials(plda, model_iv, test_iv);
+scores = score_gplda_trials(plda, lda_out'*model_iv, lda_out'*test_iv);
 prob_scores = zeros(size(scores));
 [mm, pred_speaker_id] = max(scores);
 for col = 1:size(scores,2)

@@ -15,23 +15,6 @@ function mfcc_files = extract_mfccs(inFolder, soundfile_ext, outFolder, normaliz
     % Get files
     files = dir([inFolder '\**\*' soundfile_ext]);
     
-    % Collect all MFCCs to get normalization parameters
-    if normalizeMFCCs
-        all_feats = [];
-        tic
-        parfor fileIdx = 1:size(files,1)
-            filename = files(fileIdx).name;
-            folder = files(fileIdx).folder;
-            file = strcat(folder, '/', filename);
-            [x, fs] = audioread(file);
-            x_feats = get_mfccs_deltas(x, fs);
-            all_feats = [all_feats, x_feats];
-        end
-        fprintf('Feature extraction from training set complete (%0.0f seconds).\n',toc)
-        normMean = mean(all_feats,2,'omitnan');
-        normSTD = std(all_feats,[],2,'omitnan');
-    end
-    
     % Calculate all MFCCs, normalize if needed
     mfcc_files = cell(size(files,1),1);
     parfor fileIdx = 1:size(files,1)
@@ -43,13 +26,15 @@ function mfcc_files = extract_mfccs(inFolder, soundfile_ext, outFolder, normaliz
         end
         file = strcat(folder, '\', filename);
         [x, fs] = audioread(file);
+        [vad,~] = v_vadsohn(x,fs,'a');
+        x(size(vad,1)+1:end) = [];
+        x(~vad) = [];
         x_feats = get_mfccs_deltas(x,fs);
         if normalizeMFCCs
-            x_feats = (x_feats-normMean)./normSTD; %normalize
-            x_feats = x_feats - mean(x_feats,'all'); %for channel noise
+            x_feats = fea_warping(x_feats);
         end   
         outFile = strcat(mfccFolder, '\', filename);
-        outFile = strrep(outFile, '.wav', '.mfcc');
+        outFile = strrep(outFile, soundfile_ext, '.mfcc');
         fileId = fopen(outFile, 'w');
         fwrite(fileId, x_feats);
         fclose(fileId);
