@@ -1,7 +1,14 @@
 function mfcc_files = extract_mfccs(inFolder, soundfile_ext, outFolder, normalizeMFCCs)
-%% Extract MFCCs from input sound files using get_mfcc_delta (function below)
+%% Extract MFCCs from input sound files 
+% Arguments:
+%   inFolder:       The folder where the sound files are stored (may contain subdirectories)
+%   soundfile_ext:  The extension of the sound files (e.g. .wav, .WAV, .flac, etc.)
+%   outFolder:      The folder where the mfcc files are written to
+%   normalizeMFCCs: Binary flag to normalize MFCCs before writing to file
+
     if exist(outFolder, 'dir')
         disp(['Appears MFCCs already extracted to: ' outFolder]);
+        disp('Collecting .mfcc files from the directory');
         files = dir([outFolder '\**\*.mfcc']);
         mfcc_files = cell(size(files,1),1);
         for fileIdx = 1:size(files,1)
@@ -15,7 +22,7 @@ function mfcc_files = extract_mfccs(inFolder, soundfile_ext, outFolder, normaliz
     % Get files
     files = dir([inFolder '\**\*' soundfile_ext]);
     
-    % Calculate all MFCCs, normalize if needed
+    % For each file, calculate MFCCs and normalize if selected
     mfcc_files = cell(size(files,1),1);
     parfor fileIdx = 1:size(files,1)
         filename = files(fileIdx).name;
@@ -43,8 +50,11 @@ function mfcc_files = extract_mfccs(inFolder, soundfile_ext, outFolder, normaliz
 end
 
 function mfcc_feats = get_mfccs_deltas(sig, fs)
-    % Returns the mfccs, deltas and delta-deltas of a signal with preset
-    % parameters
+%% Returns the mfccs, deltas and delta-deltas of a signal using preset parameters
+%  via the rastamat toolbox
+%   window_size:    window to calculate FFT on, time in seconds
+%   window_shift:   window overlap, time in seconds
+%   number_coeff:   number of MFCCoefficients
     window_size = 0.025;
     window_shift = 0.010;
     number_coeff = 20;

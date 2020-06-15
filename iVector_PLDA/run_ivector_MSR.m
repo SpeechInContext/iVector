@@ -32,6 +32,7 @@ end
 disp('Calculating MFCCs');
 tic
 mfcc_list = extract_mfccs(inFolder, soundfile_ext, outFolder, normalizeMFCCs);
+
 %----------- Filter to gender if needed ----------------------------------%
 if train_gender == 'F'
     gender_idx = contains(mfcc_list, '\F');
@@ -213,19 +214,22 @@ else
 end
 
 
+% %%%------------ Splice enrol set and verify set --------------------- %%%
+% This code is here for demonstration purposes if someone wants to enrol a
+% speaker with a certain proportion of their utterances and then verify
+% new utterances thereafter
 
-%%%------------ Splice enrol set and verify set ----------------------- %%%
-% Set proportion of enrol utterances
-proportion = 0.4;
-[model_iv, speaker_model_size, test_iv, verify_labels] = separate_enrol_verify(enrol_verify_ivectors,proportion);
-
-%%%------------ Perform PLDA on verification set -----------------------%%%
-scores = score_gplda_trials(plda, lda_out'*model_iv, lda_out'*test_iv);
-prob_scores = zeros(size(scores));
-[mm, pred_speaker_id] = max(scores);
-for col = 1:size(scores,2)
-    prob_scores(:,col) = exp(scores(:,col))/(sum(exp(scores(:,col))));
-end
-accuracy = pred_speaker_id == grp2idx(verify_labels)';
-cp = classperf(grp2idx(verify_labels)', pred_speaker_id);
+% % Set proportion of enrol utterances
+% proportion = 0.4;
+% [model_iv, speaker_model_size, test_iv, verify_labels] = separate_enrol_verify(enrol_verify_ivectors,proportion);
+% 
+% %%%------------ Perform PLDA on verification set -----------------------%%%
+% scores = score_gplda_trials(plda, lda_out'*model_iv, lda_out'*test_iv);
+% prob_scores = zeros(size(scores));
+% [mm, pred_speaker_id] = max(scores);
+% for col = 1:size(scores,2)
+%     prob_scores(:,col) = exp(scores(:,col))/(sum(exp(scores(:,col))));
+% end
+% accuracy = pred_speaker_id == grp2idx(verify_labels)';
+% cp = classperf(grp2idx(verify_labels)', pred_speaker_id);
 

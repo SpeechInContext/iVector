@@ -12,7 +12,7 @@ normalizeMFCCs = true;
 train_gender = 'X';             %M, F or X
 train_language = 'english';     % english or cantonese
 test_gender = 'F';              %M, F or X
-test_language = 'cantonese';    % english or cantonese
+test_language = 'english';    % english or cantonese
 corpus = 'ls';                  %timit or ls
 num_para_workers = 19;
 train_file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
@@ -35,8 +35,8 @@ unique_speakerIds = unique(speakerIds);
 %%%---------------- Generate analyses --------------------------------- %%%
 speaker_analyses = cell(size(unique_speakerIds,1), 14);
 speaker_analyses_cols = ["SpeakerId" "SpeakerIdNum" "Files" "iVectors" "SpeakerModel" ...
-    "iVectEucDist2Model" "AvgEucDist" "EucStd" "iVectCosDist2Model" "AvgCosDist" "CosStd" ...
-    "iVectProb2Model" "AvgProb" "ProbStd" "PLDAAcc" "PLDAFRR" "PLDAFAR"];
+    "iVectEucDist2Model" "AvgEucDist" "EucDistStd" "iVectCosDist2Model" "AvgCosDist" "CosDistStd" ...
+    "iVectPLDAScore2Model" "AvgPLDAScore" "PLDAScoreStd" "PLDAAcc" "PLDAFRR" "PLDAFAR"];
 for spIdx = 1:size(unique_speakerIds,1)
     utteranceIdx = speakerIds == spIdx;
     speaker_analyses(spIdx,1) = unique_speakers(spIdx);
@@ -100,12 +100,17 @@ for spIdx = 2:size(unique_speakerIds,1)
     talker = speaker_analyses(spIdx,1);
     lang = {test_language};
     files = cellstr(speaker_analyses{spIdx,3});
+    filenames = cell(size(files));
+    for fileIdx = 1:size(files,2)
+        [filepath,name,ext] = fileparts(files{fileIdx});
+        filenames(fileIdx) = {[name '.wav']};
+    end
     talker = repmat(talker, 1, size(files,2));
     lang = repmat(lang, 1, size(files,2));
     plda_score = num2cell(speaker_analyses{spIdx,12});
     euc_dist = num2cell(speaker_analyses{spIdx,6});
     cs_dist = num2cell(speaker_analyses{spIdx,9});
-    outmat = [talker;lang;files;euc_dist;cs_dist;plda_score]';
+    outmat = [talker;lang;filenames;euc_dist;cs_dist;plda_score]';
     utt_outs = [utt_outs; outmat]; 
 end
 header = {'SpeakerId' 'Language' 'Utterance' 'EucDist' 'CosDist' 'PLDAScore'};
@@ -117,7 +122,7 @@ T = cell2table(utt_outs,'VariableNames',header);
 writetable(T,outFile);
     
 speakers_out = speaker_analyses(:, [1 7 8 10 11 13 14 15 16 17]);
-lang = [{'language'}; repmat({test_language}, size(speakers_out,1)-1, 1)];
+lang = [{'Language'}; repmat({test_language}, size(speakers_out,1)-1, 1)];
 speakers_out = [speakers_out(:, 1) lang speakers_out(:, 2:end)];
 T = cell2table(speakers_out(2:end,:),'VariableNames',speakers_out(1, :));
 outFile = ['./Files/speakers' test_file_end];
