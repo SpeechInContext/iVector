@@ -4,22 +4,29 @@
 
 %%%------------------ Define hyper-parameters ------------------------- %%%
 % These parameters must match a model that has already been trained
-num_gaussians = 1024;
-tv_dim =  400;
-plda_dim = 400;
+num_gaussians = 256;
+tv_dim =  200;
+plda_dim = 200;
 numFeatures = 60;
-gender = 'F';
-num_para_workers = 5;
-file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
-    num2str(plda_dim) '_' gender '.mat'], '');
+normalizeMFCCs = true;
+train_gender = 'X';             %M, F or X
+train_language = 'english';     % english or cantonese
+test_gender = 'F';              %M, F or X
+test_language = 'cantonese';    % english or cantonese
+corpus = 'ls';                  %timit or ls
+num_para_workers = 19;
+train_file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
+    num2str(plda_dim) '_' train_gender '_' train_language '_' corpus '.mat'], '');
+test_file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
+    num2str(plda_dim) '_' test_gender '_' test_language '_' corpus '.mat'], '');
 
-ubm_file = join(['./Files/ubm' file_end], ''); load(ubm_file);
-tvm_file = join(['./Files/tvm' file_end], ''); load(tvm_file);
-lda_file = join(['./Files/lda' file_end], ''); load(lda_file);
-plda_file = join(['./Files/plda' file_end], ''); load(plda_file);
+ubm_file = join(['./Files/ubm' train_file_end], ''); load(ubm_file);
+tvm_file = join(['./Files/tvm' train_file_end], ''); load(tvm_file);
+lda_file = join(['./Files/lda' train_file_end], ''); load(lda_file);
+plda_file = join(['./Files/plda' train_file_end], ''); load(plda_file);
 
 %%%------------------ Load ivectors --------------------------- %%%
-enrol_verify_iv_file = join(['./Files/enrol_verify_ivectors' file_end], '');
+enrol_verify_iv_file = join(['./Files/enrol_verify_ivectors' test_file_end], '');
 load(enrol_verify_iv_file);
 unique_speakers = unique(enrol_verify_ivectors(:,2));
 speakerIds = grp2idx(enrol_verify_ivectors(:,2));
@@ -28,7 +35,7 @@ unique_speakerIds = unique(speakerIds);
 %%%---------------- Generate analyses --------------------------------- %%%
 speaker_analyses = cell(size(unique_speakerIds,1), 14);
 speaker_analyses_cols = ["SpeakerId" "SpeakerIdNum" "Files" "iVectors" "SpeakerModel" ...
-    "iVectEuDist2Model" "AvgEuDist" "EuStd" "iVectCSDist2Model" "AvgCSDist" "CSStd" ...
+    "iVectEucDist2Model" "AvgEucDist" "EucStd" "iVectCosDist2Model" "AvgCosDist" "CosStd" ...
     "iVectProb2Model" "AvgProb" "ProbStd" "PLDAAcc" "PLDAFRR" "PLDAFAR"];
 for spIdx = 1:size(unique_speakerIds,1)
     utteranceIdx = speakerIds == spIdx;
@@ -85,6 +92,37 @@ speaker_analyses = [cellstr(speaker_analyses_cols); speaker_analyses];
 %sort command: 
 speaker_analyses(2:end,:) = sortrows(speaker_analyses(2:end,:), 13, 'descend');
 cp = classperf(speakerIds', pred_speaker_id);
+
+%%%---------------------- Write to CSV per talker ----------------------%%%
+utt_outs = [];
+for spIdx = 2:size(unique_speakerIds,1)
+    %Out data
+    talker = speaker_analyses(spIdx,1);
+    lang = {test_language};
+    files = cellstr(speaker_analyses{spIdx,3});
+    talker = repmat(talker, 1, size(files,2));
+    lang = repmat(lang, 1, size(files,2));
+    plda_score = num2cell(speaker_analyses{spIdx,12});
+    euc_dist = num2cell(speaker_analyses{spIdx,6});
+    cs_dist = num2cell(speaker_analyses{spIdx,9});
+    outmat = [talker;lang;files;euc_dist;cs_dist;plda_score]';
+    utt_outs = [utt_outs; outmat]; 
+end
+header = {'SpeakerId' 'Language' 'Utterance' 'EucDist' 'CosDist' 'PLDAScore'};
+outFile = ['./Files/utterances' test_file_end];
+outFile = strrep(outFile, '.mat','.csv');
+
+%Write data
+T = cell2table(utt_outs,'VariableNames',header);
+writetable(T,outFile);
+    
+speakers_out = speaker_analyses(:, [1 7 8 10 11 13 14 15 16 17]);
+lang = [{'language'}; repmat({test_language}, size(speakers_out,1)-1, 1)];
+speakers_out = [speakers_out(:, 1) lang speakers_out(:, 2:end)];
+T = cell2table(speakers_out(2:end,:),'VariableNames',speakers_out(1, :));
+outFile = ['./Files/speakers' test_file_end];
+outFile = strrep(outFile, '.mat','.csv');
+writetable(T, outFile);
 
 %%%---------------------- HelperFunctions ------------------------------%%%
 function csd_m= cosine_dist_mat(speaker_model, ivectors)
