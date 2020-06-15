@@ -1,18 +1,22 @@
-%%%--------------- Computes metrics of speakers -------------------- %%%
-% Assumes you have already run and extracted these loaded models using
-% 'run_ivector_MSR.m'
+%%%--------------- Computes metrics of speakers' variability ----------- %%%
+% This script calculates variability metrics for speakers' utterances
+
+% This script assumes you have already trained a model matching the hyper-
+% parameters below using the `train_ivector_MSR.m`
+% It also assumes you have already extracted iVector representations for
+% your enrol/verify data set.
 
 %%%------------------ Define hyper-parameters ------------------------- %%%
 % These parameters must match a model that has already been trained
-num_gaussians = 256;
-tv_dim =  200;
-plda_dim = 200;
+num_gaussians = 8;
+tv_dim =  10;
+plda_dim = 10;
 numFeatures = 60;
 normalizeMFCCs = true;
 train_gender = 'X';             %M, F or X
 train_language = 'english';     % english or cantonese
 test_gender = 'F';              %M, F or X
-test_language = 'english';    % english or cantonese
+test_language = 'cantonese';    % english or cantonese
 corpus = 'ls';                  %timit or ls
 num_para_workers = 19;
 train_file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
@@ -20,29 +24,31 @@ train_file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
 test_file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
     num2str(plda_dim) '_' test_gender '_' test_language '_' corpus '.mat'], '');
 
-ubm_file = join(['./Files/ubm' train_file_end], ''); load(ubm_file);
-tvm_file = join(['./Files/tvm' train_file_end], ''); load(tvm_file);
-lda_file = join(['./Files/lda' train_file_end], ''); load(lda_file);
+%%%-------- Load pretrained PLDA analysis and enrol/verify iVectors-----%%%
 plda_file = join(['./Files/plda' train_file_end], ''); load(plda_file);
-
-%%%------------------ Load ivectors --------------------------- %%%
 enrol_verify_iv_file = join(['./Files/enrol_verify_ivectors' test_file_end], '');
 load(enrol_verify_iv_file);
+
+
+%%%---------------- Analyses speaker variability ---------------------- %%%
+%------------------ Get unique speakers ------------------------------- %%%
 unique_speakers = unique(enrol_verify_ivectors(:,2));
 speakerIds = grp2idx(enrol_verify_ivectors(:,2));
 unique_speakerIds = unique(speakerIds);
 
-%%%---------------- Generate analyses --------------------------------- %%%
+%------------------- Initialize speaker analyses matrix ------------------%
 speaker_analyses = cell(size(unique_speakerIds,1), 14);
 speaker_analyses_cols = ["SpeakerId" "SpeakerIdNum" "Files" "iVectors" "SpeakerModel" ...
     "iVectEucDist2Model" "AvgEucDist" "EucDistStd" "iVectCosDist2Model" "AvgCosDist" "CosDistStd" ...
     "iVectPLDAScore2Model" "AvgPLDAScore" "PLDAScoreStd" "PLDAAcc" "PLDAFRR" "PLDAFAR"];
+
+%----------------- Go through utterances for each talker -----------------%
 for spIdx = 1:size(unique_speakerIds,1)
     utteranceIdx = speakerIds == spIdx;
-    speaker_analyses(spIdx,1) = unique_speakers(spIdx);
-    speaker_analyses(spIdx,2) = {spIdx};
-    speaker_analyses(spIdx,3) = {string(cat(2, enrol_verify_ivectors(utteranceIdx, 3)))'};
-    speaker_analyses(spIdx,4) = {lda_out'*cat(2, enrol_verify_ivectors{utteranceIdx, 1})};
+    speaker_analyses(spIdx,1) = unique_speakers(spIdx);     % SpeakerId
+    speaker_analyses(spIdx,2) = {spIdx};                    % Speaker Numeric Id
+    speaker_analyses(spIdx,3) = {string(cat(2, enrol_verify_ivectors(utteranceIdx, 3)))'}; %Speaker Filenames
+    speaker_analyses(spIdx,4) = {cat(2, enrol_verify_ivectors{utteranceIdx, 1})}; %Filenames' iVector representation
     %%%----------Generate Speaker Model (average ivector)
     speaker_model = mean(speaker_analyses{spIdx,4},2);
     speaker_analyses(spIdx,5) = {speaker_model};  
@@ -63,8 +69,8 @@ for spIdx = 1:size(unique_speakerIds,1)
 end
 
 %%%------------Now generate PLDA probabilities
-model_iv = cat(2, speaker_analyses{:,5});
-test_iv =  cat(2, speaker_analyses{:,4});
+model_iv = cat(2, speaker_analyses{:,5}); %Speaker iVector models
+test_iv =  cat(2, speaker_analyses{:,4}); %iVectors to compare to speaker models
 scores = score_gplda_trials(plda, model_iv, test_iv);
 prob_scores = zeros(size(scores));
 [mm, pred_speaker_id] = max(scores);
