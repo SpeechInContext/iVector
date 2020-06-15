@@ -2,15 +2,16 @@
 % This script calculates variability metrics for speakers' utterances
 
 % This script assumes you have already trained a model matching the hyper-
-% parameters below using the `train_ivector_MSR.m`
+% parameters below using the `train_ivector_MSR.m` script.
+
 % It also assumes you have already extracted iVector representations for
-% your enrol/verify data set.
+% your enrol/verify data set using the `apply_ivector_MSR.m` script.
 
 %%%------------------ Define hyper-parameters ------------------------- %%%
 % These parameters must match a model that has already been trained
-num_gaussians = 8;
-tv_dim =  10;
-plda_dim = 10;
+num_gaussians = 256;
+tv_dim =  200;
+plda_dim = 200;
 numFeatures = 60;
 normalizeMFCCs = true;
 train_gender = 'X';             %M, F or X
@@ -30,7 +31,7 @@ enrol_verify_iv_file = join(['./Files/enrol_verify_ivectors' test_file_end], '')
 load(enrol_verify_iv_file);
 
 
-%%%---------------- Analyses speaker variability ---------------------- %%%
+%%%----------------- Analyze speaker variability ---------------------- %%%
 %------------------ Get unique speakers ------------------------------- %%%
 unique_speakers = unique(enrol_verify_ivectors(:,2));
 speakerIds = grp2idx(enrol_verify_ivectors(:,2));
@@ -42,7 +43,7 @@ speaker_analyses_cols = ["SpeakerId" "SpeakerIdNum" "Files" "iVectors" "SpeakerM
     "iVectEucDist2Model" "AvgEucDist" "EucDistStd" "iVectCosDist2Model" "AvgCosDist" "CosDistStd" ...
     "iVectPLDAScore2Model" "AvgPLDAScore" "PLDAScoreStd" "PLDAAcc" "PLDAFRR" "PLDAFAR"];
 
-%----------------- Go through utterances for each talker -----------------%
+%----------------- Go through all utterances for each talker -------------%
 for spIdx = 1:size(unique_speakerIds,1)
     utteranceIdx = speakerIds == spIdx;
     speaker_analyses(spIdx,1) = unique_speakers(spIdx);     % SpeakerId
@@ -50,7 +51,7 @@ for spIdx = 1:size(unique_speakerIds,1)
     speaker_analyses(spIdx,3) = {string(cat(2, enrol_verify_ivectors(utteranceIdx, 3)))'}; %Speaker Filenames
     speaker_analyses(spIdx,4) = {cat(2, enrol_verify_ivectors{utteranceIdx, 1})}; %Filenames' iVector representation
     %%%----------Generate Speaker Model (average ivector)
-    speaker_model = mean(speaker_analyses{spIdx,4},2);
+    speaker_model = mean(speaker_analyses{spIdx,4},2);      %Note this is the mean of all utterances
     speaker_analyses(spIdx,5) = {speaker_model};  
     
     %%%-----------Calculate Euclidean Distance per iVector

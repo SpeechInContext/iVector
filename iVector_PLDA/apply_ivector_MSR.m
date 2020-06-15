@@ -1,16 +1,16 @@
 %%%--------- Apply a trained iVector model to speaker data ------------ %%%
-% The goal is to extract iVectors, derived from the model, for each utterance
-% in the data. This script will most likely be used to generate enrol/verify 
-% data, which is terminology used throughout
+% The goal is to extract iVectors, derived from a trained model, for each 
+% utterance in the data. This script will most likely be used to generate 
+% enrol/verify data, which is terminology used throughout
 
 % This script assumes you have already trained a model of matching hyper-
 % parameters using 'train_ivector_MSR.m'
 
 %%%------------------ Define hyper-parameters ------------------------- %%%
 % These parameters must match a model that has already been trained
-num_gaussians = 8;
-tv_dim =  10;
-plda_dim = 10;
+num_gaussians = 256;
+tv_dim =  200;
+plda_dim = 200;
 numFeatures = 60;
 normalizeMFCCs = true;
 train_gender = 'X';             %M, F or X
@@ -40,11 +40,11 @@ enrol_verify_list = extract_mfccs(inFolder, soundfile_ext, outFolder, normalizeM
 gender_idx = contains(enrol_verify_list, ['V' test_gender]);
 enrol_verify_list = enrol_verify_list(gender_idx,1);
 
-%%%-------- Extract iVectors for all enrol/verify utterances -------------%
+%%%-------- Extract iVectors for all (enrol/verify) utterances -----------%
 % To do this, we need to collect the MFCCs for an utterance, calculate the
 % Baum-Welch stats for the utterance, decompose the stats into factors
 % using the TVM and finally apply an LDA transform to increase speaker
-% separability given those factors.
+% separability from those factors.
 
 %----------------------- Collect all MFCCs -------------------------------%
 all_enrol_verify_feats = cell(size(enrol_verify_list,1),1);
@@ -78,10 +78,13 @@ tic
 temp_arr = distributed(all_enrol_verify_bw_stats);
 enrol_verify_ivectors = cellfun(wrap_ivector,temp_arr , 'UniformOutput', false);
 enrol_verify_ivectors = gather(enrol_verify_ivectors);
+
 %----------------------------- Apply LDA projection ----------------------%
 enrol_verify_ivectors = cat(2, enrol_verify_ivectors{:,1}); 
 enrol_verify_ivectors = lda_out'*enrol_verify_ivectors;
 enrol_verify_ivectors = num2cell(enrol_verify_ivectors, 1)';
+
+%--------------- Add file identifier (hardcoded to filepath) and save ----%
 for fileIdx = 1:size(enrol_verify_list)
     enrol_verify_ivectors(fileIdx, 2) = extractBetween(enrol_verify_list(fileIdx), 'snippets\', '_');
 end
@@ -90,8 +93,7 @@ save(enrol_verify_iv_file, 'enrol_verify_ivectors')
 fprintf('i-vectors extracted (%0.0f seconds).\n',toc)
 
 
-
-% %%%---------------- Enrol and verify utterances --------------------- %%%
+%%%------------------ Enrol and verify utterances --------------------- %%%
 % This code is here for demonstration purposes if someone wants to enrol a
 % speaker with a certain proportion of their utterances and then verify
 % new utterances thereafter
