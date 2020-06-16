@@ -1,3 +1,3 @@
-This folder contains i-vector extraction following MATLAB tutorial found [here](https://www.mathworks.com/help/audio/examples/speaker-verification-using-ivectors.html)
+This folder contains scripts to perform i-vector extraction following the MATLAB tutorial found [here](https://www.mathworks.com/help/audio/examples/speaker-verification-using-ivectors.html)
 
 The primary difference is that it handles file folders without relying on the Audio Toolbox.
