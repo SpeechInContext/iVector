@@ -25,7 +25,7 @@ train_file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
 test_file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
     num2str(plda_dim) '_' test_gender '_' test_language '_' corpus '.mat'], '');
 
-%%%---- Load pretrained LDA/PLDA analysis and enrol/verify iVectors-----%%%
+%%%---- Load pretrained LDA/PLDA analyses and enrol/verify iVectors-----%%%
 lda_file = join(['./Files/lda' train_file_end], ''); load(lda_file);
 plda_file = join(['./Files/plda' train_file_end], ''); load(plda_file);
 enrol_verify_iv_file = join(['./Files/enrol_verify_ivectors' test_file_end], '');
@@ -103,7 +103,7 @@ cp = classperf(speakerIds', pred_speaker_id);
 
 %%%---------------------- Write to CSV per talker ----------------------%%%
 utt_outs = [];
-for spIdx = 2:size(unique_speakerIds,1)
+for spIdx = 2:size(speaker_analyses,1)
     %Out data
     talker = speaker_analyses(spIdx,1);
     lang = {test_language};
