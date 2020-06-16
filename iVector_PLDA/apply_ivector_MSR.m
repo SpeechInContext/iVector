@@ -16,7 +16,7 @@ normalizeMFCCs = true;
 train_gender = 'X';             %M, F or X
 train_language = 'english';     % english or cantonese
 test_gender = 'F';              %M, F or X
-test_language = 'cantonese';    % english or cantonese
+test_language = 'english';    % english or cantonese
 corpus = 'ls';                  %timit or ls
 num_para_workers = 19;
 train_file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
@@ -27,7 +27,6 @@ test_file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
 %%%----------------- Load trained model ------------------------------- %%%
 ubm_file = join(['./Files/ubm' train_file_end], ''); load(ubm_file);
 tvm_file = join(['./Files/tvm' train_file_end], ''); load(tvm_file);
-lda_file = join(['./Files/lda' train_file_end], ''); load(lda_file);
 
 %%%----------------- Extract MFCCs for speaker data ------------------- %%%
 %------------ Set corpus folder/soundfile extension ----------------------%
@@ -60,7 +59,7 @@ end
 disp('Calculating Baum-Welch stats on enrol/verify data')
 tic
 wrap_bw_stats = @(x) compute_bw_stats(x, ubm);
-temp_arr = distributed(all_enrol_verify_feats);
+temp_arr = distributed(all_enrol_verify_feats); 
 [N, F] = cellfun(wrap_bw_stats, temp_arr, 'UniformOutput', false);
 N = gather(N);
 F = gather(F);
@@ -78,12 +77,6 @@ tic
 temp_arr = distributed(all_enrol_verify_bw_stats);
 enrol_verify_ivectors = cellfun(wrap_ivector,temp_arr , 'UniformOutput', false);
 enrol_verify_ivectors = gather(enrol_verify_ivectors);
-
-%----------------------------- Apply LDA projection ----------------------%
-enrol_verify_ivectors = cat(2, enrol_verify_ivectors{:,1}); 
-enrol_verify_ivectors = lda_out'*enrol_verify_ivectors;
-enrol_verify_ivectors = num2cell(enrol_verify_ivectors, 1)';
-
 %--------------- Add file identifier (hardcoded to filepath) and save ----%
 for fileIdx = 1:size(enrol_verify_list)
     enrol_verify_ivectors(fileIdx, 2) = extractBetween(enrol_verify_list(fileIdx), 'snippets\', '_');

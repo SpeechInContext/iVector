@@ -25,7 +25,8 @@ train_file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
 test_file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
     num2str(plda_dim) '_' test_gender '_' test_language '_' corpus '.mat'], '');
 
-%%%-------- Load pretrained PLDA analysis and enrol/verify iVectors-----%%%
+%%%---- Load pretrained LDA/PLDA analysis and enrol/verify iVectors-----%%%
+lda_file = join(['./Files/lda' train_file_end], ''); load(lda_file);
 plda_file = join(['./Files/plda' train_file_end], ''); load(plda_file);
 enrol_verify_iv_file = join(['./Files/enrol_verify_ivectors' test_file_end], '');
 load(enrol_verify_iv_file);
@@ -49,7 +50,7 @@ for spIdx = 1:size(unique_speakerIds,1)
     speaker_analyses(spIdx,1) = unique_speakers(spIdx);     % SpeakerId
     speaker_analyses(spIdx,2) = {spIdx};                    % Speaker Numeric Id
     speaker_analyses(spIdx,3) = {string(cat(2, enrol_verify_ivectors(utteranceIdx, 3)))'}; %Speaker Filenames
-    speaker_analyses(spIdx,4) = {cat(2, enrol_verify_ivectors{utteranceIdx, 1})}; %Filenames' iVector representation
+    speaker_analyses(spIdx,4) = {lda_out'*cat(2, enrol_verify_ivectors{utteranceIdx, 1})}; %Filenames' iVector representation
     %%%----------Generate Speaker Model (average ivector)
     speaker_model = mean(speaker_analyses{spIdx,4},2);      %Note this is the mean of all utterances
     speaker_analyses(spIdx,5) = {speaker_model};  
