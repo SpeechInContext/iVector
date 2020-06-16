@@ -41,9 +41,8 @@ enrol_verify_list = enrol_verify_list(gender_idx,1);
 
 %%%-------- Extract iVectors for all (enrol/verify) utterances -----------%
 % To do this, we need to collect the MFCCs for an utterance, calculate the
-% Baum-Welch stats for the utterance, decompose the stats into factors
-% using the TVM and finally apply an LDA transform to increase speaker
-% separability from those factors.
+% Baum-Welch stats for the utterance, and decompose the stats into factors
+% using the TVM
 
 %----------------------- Collect all MFCCs -------------------------------%
 all_enrol_verify_feats = cell(size(enrol_verify_list,1),1);
