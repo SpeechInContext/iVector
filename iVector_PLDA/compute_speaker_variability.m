@@ -9,21 +9,22 @@
 
 %%%------------------ Define hyper-parameters ------------------------- %%%
 % These parameters must match a model that has already been trained
-num_gaussians = 256;
-tv_dim =  200;
-plda_dim = 200;
+num_gaussians = 1024;
+tv_dim =  600;
+plda_dim = 600;
 numFeatures = 60;
 normalizeMFCCs = true;
 train_gender = 'X';             %M, F or X
 train_language = 'english';     % english or cantonese
 test_gender = 'F';              %M, F or X
-test_language = 'cantonese';    % english or cantonese
+test_language = 'english';    % english or cantonese
+denoised = '_denoised';         % '_denoised' or ''
 corpus = 'ls';                  %timit or ls
 num_para_workers = 19;
 train_file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
     num2str(plda_dim) '_' train_gender '_' train_language '_' corpus '.mat'], '');
 test_file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
-    num2str(plda_dim) '_' test_gender '_' test_language '_' corpus '.mat'], '');
+    num2str(plda_dim) '_' test_gender denoised '_' test_language '_' corpus '.mat'], '');
 
 %%%---- Load pretrained LDA/PLDA analyses and enrol/verify iVectors-----%%%
 lda_file = join(['./Files/lda' train_file_end], ''); load(lda_file);
@@ -98,7 +99,7 @@ for spIdx = 1:size(unique_speakerIds,1)
 end
 speaker_analyses = [cellstr(speaker_analyses_cols); speaker_analyses];
 %sort command: 
-speaker_analyses(2:end,:) = sortrows(speaker_analyses(2:end,:), 13, 'descend');
+%speaker_analyses(2:end,:) = sortrows(speaker_analyses(2:end,:), 13, 'descend');
 cp = classperf(speakerIds', pred_speaker_id);
 
 %%%---------------------- Write to CSV per talker ----------------------%%%

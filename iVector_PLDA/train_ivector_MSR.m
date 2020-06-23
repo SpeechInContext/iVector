@@ -3,9 +3,9 @@
 % representations of an utterance to be extracted
 
 %%%------------------ Define hyper-parameters ------------------------- %%%
-num_gaussians = 8;
-tv_dim =  10;
-plda_dim = 10;
+num_gaussians = 1024;
+tv_dim =  600;
+plda_dim = 600;
 numFeatures = 60;
 normalizeMFCCs = true;
 train_gender = 'X';             %M, F or X

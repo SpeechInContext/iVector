@@ -8,21 +8,22 @@
 
 %%%------------------ Define hyper-parameters ------------------------- %%%
 % These parameters must match a model that has already been trained
-num_gaussians = 256;
-tv_dim =  200;
-plda_dim = 200;
+num_gaussians = 1024;
+tv_dim =  600;
+plda_dim = 600;
 numFeatures = 60;
 normalizeMFCCs = true;
 train_gender = 'X';             %M, F or X
 train_language = 'english';     % english or cantonese
 test_gender = 'F';              %M, F or X
 test_language = 'english';    % english or cantonese
+denoised = '_denoised';           % '_denoised' or ''
 corpus = 'ls';                  %timit or ls
 num_para_workers = 19;
 train_file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
     num2str(plda_dim) '_' train_gender '_' train_language '_' corpus '.mat'], '');
 test_file_end = join(['_' num2str(num_gaussians) '_' num2str(tv_dim) '_' ...
-    num2str(plda_dim) '_' test_gender '_' test_language '_' corpus '.mat'], '');
+    num2str(plda_dim) '_' test_gender denoised '_' test_language '_' corpus '.mat'], '');
 
 %%%----------------- Load trained model ------------------------------- %%%
 ubm_file = join(['./Files/ubm' train_file_end], ''); load(ubm_file);
@@ -30,8 +31,13 @@ tvm_file = join(['./Files/tvm' train_file_end], ''); load(tvm_file);
 
 %%%----------------- Extract MFCCs for speaker data ------------------- %%%
 %------------ Set corpus folder/soundfile extension ----------------------%
-inFolder = ['C:\Users\mf\Desktop\SpeeCon\SpiCE\WAV\' test_language '_interview_snippets'];
-outFolder = ['C:\Users\mf\Desktop\SpeeCon\SpiCE\MFCC\' test_language '_interview_snippets'];
+if strcmp(denoised, '_denoised')
+    inFolder = ['C:\Users\mf\Desktop\SpeeCon\SpiCE\WAV_denoised\' test_language '_denoised_interview_snippets'];
+    outFolder = ['C:\Users\mf\Desktop\SpeeCon\SpiCE\MFCC_denoised\' test_language '_denoised_interview_snippets'];
+else
+    inFolder = ['C:\Users\mf\Desktop\SpeeCon\SpiCE\WAV\' test_language '_interview_snippets'];
+    outFolder = ['C:\Users\mf\Desktop\SpeeCon\SpiCE\MFCC\' test_language '_interview_snippets'];
+end
 soundfile_ext = '.wav';
 enrol_verify_list = extract_mfccs(inFolder, soundfile_ext, outFolder, normalizeMFCCs);
 
