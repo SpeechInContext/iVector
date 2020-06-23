@@ -109,13 +109,9 @@ for spIdx = 1:size(unique_speakerIds,1)
     st_loc = en_loc + 1;
 end
 speaker_analyses = [cellstr(speaker_analyses_cols); speaker_analyses];
-<<<<<<< HEAD
+
 %sort command: 
 %speaker_analyses(2:end,:) = sortrows(speaker_analyses(2:end,:), 13, 'descend');
-=======
-%---------------- Sort talkers by average PLDA probability ---------------%
-speaker_analyses(2:end,:) = sortrows(speaker_analyses(2:end,:), 13, 'descend');
->>>>>>> 3ecb619a4ab3d4834e9f9f3edfe00a49c2643830
 cp = classperf(speakerIds', pred_speaker_id);
 
 %%%---------- Write to CSV for each utterance of all speakers ----------%%%
