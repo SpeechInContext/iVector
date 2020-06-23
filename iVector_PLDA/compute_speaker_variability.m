@@ -46,17 +46,19 @@ speaker_analyses_cols = ["SpeakerId" "SpeakerIdNum" "Files" "iVectors" "SpeakerM
     "iVectPLDAScore2Model" "AvgPLDAScore" "PLDAScoreStd" "PLDAAcc" "PLDAFRR" "PLDAFAR"];
 
 %----------------- Go through all utterances for each talker -------------%
+% Generate iVector speaker model for each talker, calculate how each speaker
+% utterance compares to the speaker model
 for spIdx = 1:size(unique_speakerIds,1)
     utteranceIdx = speakerIds == spIdx;
     speaker_analyses(spIdx,1) = unique_speakers(spIdx);     % SpeakerId
     speaker_analyses(spIdx,2) = {spIdx};                    % Speaker Numeric Id
     speaker_analyses(spIdx,3) = {string(cat(2, enrol_verify_ivectors(utteranceIdx, 3)))'}; %Speaker Filenames
     speaker_analyses(spIdx,4) = {lda_out'*cat(2, enrol_verify_ivectors{utteranceIdx, 1})}; %Filenames' iVector representation
-    %%%----------Generate Speaker Model (average ivector)
+    %----------Generate Speaker Model (average ivector) ------------------%
     speaker_model = mean(speaker_analyses{spIdx,4},2);      %Note this is the mean of all utterances
     speaker_analyses(spIdx,5) = {speaker_model};  
     
-    %%%-----------Calculate Euclidean Distance per iVector
+    %------- Calculate Euclidean Distance per iVector to speaker model ---%
     dist_per_ivector = vecnorm2(speaker_analyses{spIdx,4}-repmat(speaker_model, 1,size(speaker_analyses{spIdx,4},2)));
     speaker_analyses(spIdx,6) = {dist_per_ivector};
     % get average Euclidean distance
@@ -64,30 +66,39 @@ for spIdx = 1:size(unique_speakerIds,1)
     % get std of Euclidean distances
     speaker_analyses(spIdx,8) = {std(dist_per_ivector)};
     
-    %%%-----------Calculate Cosine Distance per iVector
+    %---------Calculate Cosine Distance per iVector to speaker model -----%
     csd_per_ivector = cosine_dist_mat(speaker_model, speaker_analyses{spIdx,4});
     speaker_analyses(spIdx,9) = {csd_per_ivector'};
     speaker_analyses(spIdx,10) = {mean(csd_per_ivector)};
     speaker_analyses(spIdx,11) = {std(csd_per_ivector)};    
 end
 
-%%%------------Now generate PLDA probabilities
-model_iv = cat(2, speaker_analyses{:,5}); %Speaker iVector models
+%---------------- Generate PLDA scores -----------------------------------%
+model_iv = cat(2, speaker_analyses{:,5}); %Speaker models
 test_iv =  cat(2, speaker_analyses{:,4}); %iVectors to compare to speaker models
 scores = score_gplda_trials(plda, model_iv, test_iv);
+
+%--- Convert score to probability space via softmaxGenerate PLDA scores --%
 prob_scores = zeros(size(scores));
 [mm, pred_speaker_id] = max(scores);
 for col = 1:size(scores,2)
     prob_scores(:,col) = exp(scores(:,col))/(sum(exp(scores(:,col))));
 end
 st_loc = 1;
+
+%------------ Go through speaker utterances ------------------------------%
+% Get the probability that each utterance came from the actual speaker
+% This cycles through each individual speaker
 for spIdx = 1:size(unique_speakerIds,1)
     en_loc = st_loc + size(speaker_analyses{spIdx,4},2) - 1;
-    %%%-------------Calculate Probability using PLDA per iVector
+    %------------- Get PLDA probability per iVector ----------------------%
     prob_per_ivector = prob_scores(spIdx, st_loc:en_loc);
     speaker_analyses(spIdx,12) = {prob_per_ivector};
+    % get mean probability
     speaker_analyses(spIdx,13) = {nanmean(prob_per_ivector)}; 
+    % get std of probability
     speaker_analyses(spIdx,14) = {nanstd(prob_per_ivector)};
+    %--- Generate Accuracy, false acceptance and false rejection rates ---%
     speaker_accuracy_per_utt = speakerIds(speakerIds==spIdx)' == pred_speaker_id(speakerIds==spIdx);
     false_accept_per_utt = pred_speaker_id(speakerIds~=spIdx) == spIdx;
     speak_accuracy = sum(speaker_accuracy_per_utt)/size(speaker_accuracy_per_utt,2);
@@ -98,12 +109,18 @@ for spIdx = 1:size(unique_speakerIds,1)
     st_loc = en_loc + 1;
 end
 speaker_analyses = [cellstr(speaker_analyses_cols); speaker_analyses];
+<<<<<<< HEAD
 %sort command: 
 %speaker_analyses(2:end,:) = sortrows(speaker_analyses(2:end,:), 13, 'descend');
+=======
+%---------------- Sort talkers by average PLDA probability ---------------%
+speaker_analyses(2:end,:) = sortrows(speaker_analyses(2:end,:), 13, 'descend');
+>>>>>>> 3ecb619a4ab3d4834e9f9f3edfe00a49c2643830
 cp = classperf(speakerIds', pred_speaker_id);
 
-%%%---------------------- Write to CSV per talker ----------------------%%%
+%%%---------- Write to CSV for each utterance of all speakers ----------%%%
 utt_outs = [];
+% Start at row 2 because row 1 is header
 for spIdx = 2:size(speaker_analyses,1)
     %Out data
     talker = speaker_analyses(spIdx,1);
@@ -130,6 +147,7 @@ outFile = strrep(outFile, '.mat','.csv');
 T = cell2table(utt_outs,'VariableNames',header);
 writetable(T,outFile);
     
+%%%------ Write to CSV speaker averages for across speaker comparison --%%%
 speakers_out = speaker_analyses(:, [1 7 8 10 11 13 14 15 16 17]);
 lang = [{'Language'}; repmat({test_language}, size(speakers_out,1)-1, 1)];
 speakers_out = [speakers_out(:, 1) lang speakers_out(:, 2:end)];
